@@ -87,3 +87,10 @@ class RecommendationView(APIView):
         recommended_books = recommend_books_for_user(user, top_k=5)
         serializer = BookSerializer(recommended_books, many=True)
         return Response(serializer.data)
+
+
+
+def add_book_to_pinecone(book):
+    text = f"{book.title} {book.description or ''}"
+    emb = get_book_embedding(text)
+    index.upsert(vectors=[(str(book.id), emb.tolist(), {"title": book.title, "author": book.author})])

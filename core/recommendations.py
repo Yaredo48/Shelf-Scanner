@@ -1,37 +1,42 @@
 from .models import Book, UserBook
 from .utils import get_book_embedding, cosine_similarity
 import numpy as np
+from .pinecone_utils import index
+from django.db.models import Q
+
+
 
 def recommend_books_for_user(user, top_k=5):
-    # Step 1: Get user's books
+    # 1. Get user books
     user_books = UserBook.objects.filter(user=user)
     if not user_books.exists():
         return []
 
-    # Step 2: Generate embeddings for user's books
-    user_book_embeddings = []
+    # 2. Generate user embedding (average of their books)
+    embeddings = []
     for ub in user_books:
         text = f"{ub.book.title} {ub.book.description or ''}"
         emb = get_book_embedding(text)
-        user_book_embeddings.append(emb)
+        embeddings.append(emb)
+    user_embedding = embeddings[0] if len(embeddings) == 1 else np.mean(embeddings, axis=0)
 
-    # Step 3: Compute user profile embedding (average)
-    user_embedding = np.mean(user_book_embeddings, axis=0)
+    # 3. Query Pinecone
+    results = index.query(
+        vector=user_embedding.tolist(),
+        top_k=top_k + user_books.count(),  # +exclude user's books
+        include_metadata=True
+    )
 
-    # Step 4: Get all books NOT in user's library
-    user_book_ids = user_books.values_list("book_id", flat=True)
-    candidate_books = Book.objects.exclude(id__in=user_book_ids)
-
+    # 4. Filter out books user already has
+    user_book_ids = set(str(b.book.id) for b in user_books)
     recommendations = []
-    for book in candidate_books:
-        text = f"{book.title} {book.description or ''}"
-        emb = get_book_embedding(text)
-        sim = cosine_similarity(user_embedding, emb)
-        recommendations.append((book, sim))
+    for match in results["matches"]:
+        if match["id"] not in user_book_ids:
+            book = Book.objects.get(id=int(match["id"]))
+            recommendations.append(book)
+            if len(recommendations) == top_k:
+                break
 
-    # Step 5: Sort by similarity
-    recommendations.sort(key=lambda x: x[1], reverse=True)
+    return recommendations
 
-    # Step 6: Return top K books
-    top_books = [book for book, score in recommendations[:top_k]]
-    return top_books
+

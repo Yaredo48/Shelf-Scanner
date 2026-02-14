@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -145,3 +146,9 @@ CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
+
+
+PINECONE_API_KEY="pcsk_6kpq7E_3wEFFb9c7rbSpwBHeJzmq16aBbawRZkTxLBytjQ767j65u5JftYWu8bzSvg86Wg"
+
+
+HF_TOKEN = os.environ.get("HF_TOKEN")
