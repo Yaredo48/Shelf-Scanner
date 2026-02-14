@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Book, Genre, UserBook, Scan, ScanDetectedBook
 from django.contrib.auth.models import User
 
+from .models import Scan, ScanDetectedBook
+
 # -----------------------------
 # Genre Serializer
 # -----------------------------
@@ -41,3 +43,26 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "email"]
+
+
+
+
+
+# -----------------------------
+# Scan Serializer
+# -----------------------------
+class ScanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Scan
+        fields = ["id", "user", "image", "status", "created_at", "processed_at"]
+        read_only_fields = ["status", "created_at", "processed_at"]
+
+# -----------------------------
+# Scan Detected Book Serializer
+# -----------------------------
+class ScanDetectedBookSerializer(serializers.ModelSerializer):
+    book = BookSerializer(read_only=True)
+
+    class Meta:
+        model = ScanDetectedBook
+        fields = ["id", "scan", "book", "confidence_score"]
